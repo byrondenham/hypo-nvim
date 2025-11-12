@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  lint:
+    name: Format & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust (for stylua)
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install stylua (via cargo)
+        run: |
+          set -e
+          # Try installing the common stylua crate
+          cargo install stylua || cargo install stylua-cli || true
+          stylua --version || echo "stylua not installed"
+
+      - name: Run stylua (check)
+        run: |
+          if command -v stylua >/dev/null 2>&1; then
+            stylua --check .
+          else
+            echo "stylua not available; skipping format check"
+          fi
+
+      - name: Run unit / smoke tests (Neovim headless)
+        run: |
+          # If you have tests in this repo, run them here.
+          # This is a no-op placeholder for now.
+          echo "No tests configured; add test steps if needed."

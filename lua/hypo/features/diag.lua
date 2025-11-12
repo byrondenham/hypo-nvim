@@ -17,7 +17,7 @@ end
 
 local function get_db_mtime_age()
   local conf = config.get()
-  if conf.backend ~= 'cli' then
+  if config.get_backend_type(conf) ~= 'cli' then
     return 'N/A (API backend)'
   end
 
@@ -42,7 +42,7 @@ end
 local function get_hypo_version(cb)
   local conf = config.get()
 
-  if conf.backend == 'cli' then
+  if config.get_backend_type(conf) == 'cli' then
     local cmd = conf.hypo_cmd or 'hypo'
     vim.fn.jobstart({ cmd, '--version' }, {
       stdout_buffered = true,
@@ -79,15 +79,16 @@ function M.open_panel()
   vim.bo[buf].filetype = 'hypodiag'
 
   -- Build content
+  local backend_type = config.get_backend_type(conf)
   local lines = {
     '# Hypo Diagnostics',
     '',
     '## Backend Configuration',
-    'Mode: ' .. (conf.backend or 'cli'),
+    'Mode: ' .. backend_type,
     'Vault: ' .. (conf.vault_path or 'not set'),
   }
 
-  if conf.backend == 'cli' then
+  if backend_type == 'cli' then
     table.insert(
       lines,
       'DB Path: ' .. (conf.db_path or (conf.vault_path and (conf.vault_path .. '/.hypo/index.sqlite') or 'N/A'))

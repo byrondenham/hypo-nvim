@@ -35,7 +35,8 @@ end
 
 local function choose_adapter()
   local conf = config.get()
-  if conf and conf.backend == 'api' then
+  local backend_type = config.get_backend_type(conf)
+  if backend_type == 'api' then
     local ok, api = pcall(require, 'hypo.adapters.api')
     if ok then
       return api
@@ -232,6 +233,10 @@ end
 
 function M.invalidate_all()
   memo.clear()
+end
+
+function M.reload()
+  adapter, err = choose_adapter()
 end
 
 return M

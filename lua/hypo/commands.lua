@@ -35,11 +35,61 @@ function M.register()
     require('hypo.features.diag').open_panel()
   end, {})
 
+  -- Lint commands
+  vim.api.nvim_create_user_command('HypoLint', function()
+    require('hypo.features.lint').run()
+  end, {})
+  vim.api.nvim_create_user_command('HypoLintBuffer', function()
+    require('hypo.features.lint').run_buffer()
+  end, {})
+  vim.api.nvim_create_user_command('HypoLintOnChange', function()
+    require('hypo.features.lint').toggle_watch()
+  end, {})
+
+  -- Refactor commands
+  vim.api.nvim_create_user_command('HypoRenameLabel', function()
+    require('hypo.features.refactor').rename_label()
+  end, {})
+  vim.api.nvim_create_user_command('HypoExtractNote', function()
+    require('hypo.features.refactor').extract_note()
+  end, { range = true })
+  vim.api.nvim_create_user_command('HypoExtractTransclude', function()
+    require('hypo.features.refactor').extract_transclude()
+  end, { range = true })
+  vim.api.nvim_create_user_command('HypoNormalizeBuffer', function()
+    require('hypo.features.refactor').normalize_buffer()
+  end, {})
+
+  -- Assets
+  vim.api.nvim_create_user_command('HypoInsertAsset', function()
+    require('hypo.features.assets').insert()
+  end, {})
+  vim.api.nvim_create_user_command('HypoPasteImage', function()
+    require('hypo.features.assets').paste()
+  end, {})
+
+  -- Session management
+  vim.api.nvim_create_user_command('HypoUseVault', function(opts)
+    require('hypo.features.session').use(opts.args)
+  end, { nargs = '?' })
+  vim.api.nvim_create_user_command('HypoVault', function()
+    require('hypo.features.session').show()
+  end, {})
+  vim.api.nvim_create_user_command('HypoRecentVaults', function()
+    require('hypo.features.session').recent()
+  end, {})
+
   -- suggested defaults; let users override
   vim.keymap.set('n', 'gf', '<cmd>HypoGoto<cr>', { desc = 'Hypo goto link' })
   vim.keymap.set('n', 'gp', '<cmd>HypoPreview<cr>', { desc = 'Hypo preview link' })
   vim.keymap.set('i', '<C-l>', '<cmd>HypoInsertLink<cr>', { desc = 'Hypo insert [[id]]' })
   vim.keymap.set('n', '<leader>hb', '<cmd>HypoBacklinks<cr>', { desc = 'Hypo backlinks' })
+  vim.keymap.set('n', '<leader>hl', '<cmd>HypoLint<cr>', { desc = 'Hypo lint vault' })
+  vim.keymap.set('n', '<leader>hr', '<cmd>HypoRenameLabel<cr>', { desc = 'Hypo rename ^label' })
+  vim.keymap.set('v', '<leader>he', ':HypoExtractNote<cr>', { desc = 'Hypo extract note', silent = true })
+  vim.keymap.set('v', '<leader>hE', ':HypoExtractTransclude<cr>', { desc = 'Hypo extract transclude', silent = true })
+  vim.keymap.set('n', '<leader>ha', '<cmd>HypoInsertAsset<cr>', { desc = 'Hypo insert asset' })
+  vim.keymap.set('n', '<leader>hv', '<cmd>HypoUseVault<cr>', { desc = 'Hypo switch vault' })
 end
 
 return M

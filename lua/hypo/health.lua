@@ -4,7 +4,8 @@ local config = require('hypo.config')
 
 local function check_backend()
   local conf = config.get()
-  if conf.backend == 'cli' then
+  local backend_type = config.get_backend_type(conf)
+  if backend_type == 'cli' then
     local exe = vim.fn.executable(conf.hypo_cmd or 'hypo') == 1
     if exe then
       vim.health.ok('hypo binary found in PATH')
@@ -28,6 +29,7 @@ end
 
 local function check_vault()
   local conf = config.get()
+  local backend_type = config.get_backend_type(conf)
   local vault = conf.vault_path or ''
   if vault == '' then
     vim.health.warn('vault_path not configured')
@@ -36,7 +38,7 @@ local function check_vault()
       vim.health.ok('Vault exists: ' .. vault)
 
       -- Check DB for CLI backend
-      if conf.backend == 'cli' then
+      if backend_type == 'cli' then
         local db_path = conf.db_path or (vault .. '/.hypo/index.sqlite')
         if vim.fn.filereadable(db_path) == 1 then
           vim.health.ok('Database found: ' .. db_path)
