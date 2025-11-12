@@ -188,7 +188,8 @@ function M.insert()
     local final_path = path
     local rel = choice.rel
     if not ensure_within_assets(path) then
-      local action = vim.fn.confirm('Asset is outside the assets directory. Copy or move it in?', '&Copy\n&Move\n&Cancel', 1)
+      local action =
+        vim.fn.confirm('Asset is outside the assets directory. Copy or move it in?', '&Copy\n&Move\n&Cancel', 1)
       if action == 0 or action == 3 then
         return
       end

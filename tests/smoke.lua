@@ -13,13 +13,19 @@ function M.run()
   cli.run = function(args, input, cb)
     local command = args[1]
     if command == 'lint' then
-      cb(0, vim.json.encode({ {
-        id = 'demo-note',
-        severity = 'warn',
-        message = 'Demo issue',
-        line = 1,
-        col = 1,
-      } }), '')
+      cb(
+        0,
+        vim.json.encode({
+          {
+            id = 'demo-note',
+            severity = 'warn',
+            message = 'Demo issue',
+            line = 1,
+            col = 1,
+          },
+        }),
+        ''
+      )
     elseif command == 'fmt' then
       cb(0, '', '')
     elseif command == 'new' then
