@@ -132,13 +132,15 @@ local function refresh()
   local depth = (conf.graph and conf.graph.map and conf.graph.map.depth) or 1
 
   provider.graph(state.current_id, depth, function(ok, graph_data)
-    if ok and graph_data and graph_data.nodes then
-      state.nodes = graph_data.nodes
-      state.selected_idx = 1
-      update_display()
-    else
-      vim.notify('Failed to refresh graph', vim.log.levels.WARN)
-    end
+    vim.schedule(function()
+      if ok and graph_data and graph_data.nodes then
+        state.nodes = graph_data.nodes
+        state.selected_idx = 1
+        update_display()
+      else
+        vim.notify('Failed to refresh graph', vim.log.levels.WARN)
+      end
+    end)
   end)
 end
 
@@ -168,54 +170,56 @@ function M.open(depth)
 
   -- Fetch graph data
   provider.graph(note_id, depth, function(ok, graph_data)
-    if not ok then
-      vim.notify('Failed to get graph data: ' .. tostring(graph_data), vim.log.levels.ERROR)
-      return
-    end
+    vim.schedule(function()
+      if not ok then
+        vim.notify('Failed to get graph data: ' .. tostring(graph_data), vim.log.levels.ERROR)
+        return
+      end
 
-    state.nodes = (graph_data and graph_data.nodes) or {}
-    state.selected_idx = 1
+      state.nodes = (graph_data and graph_data.nodes) or {}
+      state.selected_idx = 1
 
-    -- Create floating window
-    local buf = vim.api.nvim_create_buf(false, true)
-    state.bufnr = buf
+      -- Create floating window
+      local buf = vim.api.nvim_create_buf(false, true)
+      state.bufnr = buf
 
-    vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
-    vim.api.nvim_buf_set_option(buf, 'filetype', 'hypo-graph')
+      vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
+      vim.api.nvim_buf_set_option(buf, 'filetype', 'hypo-graph')
 
-    -- Set up window
-    local width = 54
-    local height = math.min(20, #state.nodes + 8)
-    local conf = config.get()
-    local ui_conf = conf.ui or {}
-    local border = ui_conf.border or 'rounded'
+      -- Set up window
+      local width = 54
+      local height = math.min(20, #state.nodes + 8)
+      local conf = config.get()
+      local ui_conf = conf.ui or {}
+      local border = ui_conf.border or 'rounded'
 
-    local win = vim.api.nvim_open_win(buf, true, {
-      relative = 'editor',
-      width = width,
-      height = height,
-      col = math.floor((vim.o.columns - width) / 2),
-      row = math.floor((vim.o.lines - height) / 2),
-      style = 'minimal',
-      border = border,
-    })
-    state.winnr = win
+      local win = vim.api.nvim_open_win(buf, true, {
+        relative = 'editor',
+        width = width,
+        height = height,
+        col = math.floor((vim.o.columns - width) / 2),
+        row = math.floor((vim.o.lines - height) / 2),
+        style = 'minimal',
+        border = border,
+      })
+      state.winnr = win
 
-    -- Set up keybinds
-    local opts = { buffer = buf, nowait = true, silent = true }
-    vim.keymap.set('n', 'j', function()
-      move_selection(1)
-    end, opts)
-    vim.keymap.set('n', 'k', function()
-      move_selection(-1)
-    end, opts)
-    vim.keymap.set('n', '<CR>', open_selected, opts)
-    vim.keymap.set('n', 'r', refresh, opts)
-    vim.keymap.set('n', 'q', M.close, opts)
-    vim.keymap.set('n', '<Esc>', M.close, opts)
+      -- Set up keybinds
+      local opts = { buffer = buf, nowait = true, silent = true }
+      vim.keymap.set('n', 'j', function()
+        move_selection(1)
+      end, opts)
+      vim.keymap.set('n', 'k', function()
+        move_selection(-1)
+      end, opts)
+      vim.keymap.set('n', '<CR>', open_selected, opts)
+      vim.keymap.set('n', 'r', refresh, opts)
+      vim.keymap.set('n', 'q', M.close, opts)
+      vim.keymap.set('n', '<Esc>', M.close, opts)
 
-    -- Render initial display
-    update_display()
+      -- Render initial display
+      update_display()
+    end)
   end)
 end
 

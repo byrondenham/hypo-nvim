@@ -219,13 +219,17 @@ function M.bulk_edit(edits, cb)
   local total = #edits
 
   if total == 0 then
-    cb(true, { success = true, applied = 0, errors = {} })
+    vim.schedule(function()
+      cb(true, { success = true, applied = 0, errors = {} })
+    end)
     return
   end
 
   local function process_next(idx)
     if idx > total then
-      cb(#errors == 0, { success = #errors == 0, applied = success_count, errors = errors })
+      vim.schedule(function()
+        cb(#errors == 0, { success = #errors == 0, applied = success_count, errors = errors })
+      end)
       return
     end
 
@@ -248,9 +252,11 @@ function M.bulk_edit(edits, cb)
       local content = file:read('*all')
       file:close()
 
-      -- Perform safe string replacement (escape pattern characters)
+      -- Perform safe string replacement (escape pattern characters in find string)
       local find_escaped = edit.find:gsub('([^%w])', '%%%1')
-      local new_content, count = content:gsub(find_escaped, edit.replace)
+      -- For replacement, we need to escape % characters
+      local replace_escaped = edit.replace:gsub('%%', '%%%%')
+      local new_content, count = content:gsub(find_escaped, replace_escaped)
 
       if count > 0 then
         local tmp_file = io.open(path, 'w')

@@ -88,35 +88,42 @@ function M.rename_label_global()
         end
 
         -- 5. Update the defining label in current file
-        local bufnr = vim.api.nvim_get_current_buf()
-        local line_num = vim.api.nvim_win_get_cursor(0)[1] - 1
-        local line = vim.api.nvim_buf_get_lines(bufnr, line_num, line_num + 1, false)[1]
-        local new_line = line:gsub('%^' .. old_label, '^' .. new_label)
-        vim.api.nvim_buf_set_lines(bufnr, line_num, line_num + 1, false, { new_line })
+        vim.schedule(function()
+          local bufnr = vim.api.nvim_get_current_buf()
+          local line_num = vim.api.nvim_win_get_cursor(0)[1] - 1
+          local line = vim.api.nvim_buf_get_lines(bufnr, line_num, line_num + 1, false)[1]
+          local new_line = line:gsub('%^' .. old_label, '^' .. new_label)
+          vim.api.nvim_buf_set_lines(bufnr, line_num, line_num + 1, false, { new_line })
 
-        -- Save current file
-        vim.cmd('write')
+          -- Save current file
+          vim.cmd('write')
 
-        -- 6. Apply bulk edits if there are any
-        if #edits > 0 then
-          vim.notify('Renaming ^' .. old_label .. ' to ^' .. new_label .. ' in ' .. #edits .. ' files...', vim.log.levels.INFO)
-          provider.bulk_edit(edits, function(ok2, result)
-            if ok2 and result.success then
-              vim.notify(
-                'Successfully renamed ^' .. old_label .. ' to ^' .. new_label .. ' (' .. result.applied .. ' files)',
-                vim.log.levels.INFO
-              )
-            else
-              local err_msg = 'Failed to rename in some files'
-              if result.errors and #result.errors > 0 then
-                err_msg = err_msg .. ': ' .. vim.inspect(result.errors)
-              end
-              vim.notify(err_msg, vim.log.levels.ERROR)
-            end
-          end)
-        else
-          vim.notify('Renamed ^' .. old_label .. ' to ^' .. new_label .. ' (no references found)', vim.log.levels.INFO)
-        end
+          -- 6. Apply bulk edits if there are any
+          if #edits > 0 then
+            vim.notify(
+              'Renaming ^' .. old_label .. ' to ^' .. new_label .. ' in ' .. #edits .. ' files...',
+              vim.log.levels.INFO
+            )
+            provider.bulk_edit(edits, function(ok2, result)
+              vim.schedule(function()
+                if ok2 and result.success then
+                  vim.notify(
+                    'Successfully renamed ^' .. old_label .. ' to ^' .. new_label .. ' (' .. result.applied .. ' files)',
+                    vim.log.levels.INFO
+                  )
+                else
+                  local err_msg = 'Failed to rename in some files'
+                  if result.errors and #result.errors > 0 then
+                    err_msg = err_msg .. ': ' .. vim.inspect(result.errors)
+                  end
+                  vim.notify(err_msg, vim.log.levels.ERROR)
+                end
+              end)
+            end)
+          else
+            vim.notify('Renamed ^' .. old_label .. ' to ^' .. new_label .. ' (no references found)', vim.log.levels.INFO)
+          end
+        end)
       end)
     end
 
