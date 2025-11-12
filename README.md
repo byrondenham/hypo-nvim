@@ -60,9 +60,14 @@ hypo reindex --vault ~/notes/vault
 
 ### Refactors
 - `:HypoRenameLabel` — Rename the `^label` under the cursor.
+- `:HypoRenameLabelGlobal` — Rename the `^label` across all references in the vault.
 - `:HypoExtractNote` — Extract the current selection into a new note.
 - `:HypoExtractTransclude` — Extract selection into a new note and insert a transclusion (`![[id#^label]]`).
 - `:HypoNormalizeBuffer` — Run `hypo fmt --links --ids-only` for the current buffer.
+
+### Lint & Auto-fix
+- `:HypoLintApply` — Review and apply lint fixes interactively with Telescope.
+- `:HypoLintApplyAll` — Apply all auto-fixable lint issues with confirmation.
 
 ### Assets
 - `:HypoInsertAsset` — Pick an asset (or import a file) and insert a Markdown reference.
@@ -82,6 +87,10 @@ Requires [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim).
 - `:HypoBacklinksPicker` — Find notes linking to the current note.
 - `:HypoNeighbors` / `:HypoNeighbors2` — Explore graph neighbours by depth.
 
+### Graph Visualization
+
+- `:HypoGraphMap [depth]` — Show an ASCII graph mini-map of note relationships (depth 1 or 2).
+
 ### Diagnostics
 
 - `:HypoDiag` — Open diagnostics panel with cache stats and backend info.
@@ -99,6 +108,10 @@ require("hypo").setup({
       mode = "subscribe",       -- "subscribe", "poll", or "off"
       interval_ms = 2000,        -- Used when mode = "poll"
       debounce_ms = 250,
+      flood = {
+        max_batches = 8,         -- Max events in window
+        window_ms = 800,         -- Time window for flood detection
+      },
     },
   },
   hypo_cmd = "hypo",            -- Path to hypo binary
@@ -116,15 +129,27 @@ require("hypo").setup({
   ui = { border = "rounded", max_width = 84, max_height = 22 },
   debounce = { preview = 80, search = 120 },
   telescope = { enable = true },
-  cmp = { enable = true, max_items = 200, include_aliases = true },
+  cmp = { enable = true, max_items = 200, include_aliases = true, rank_exact_id = true },
   cache_ttl = { notes = 5000, search = 2000, neighbours = 5000 },
   timeouts = { request_ms = 3000 },
+
+  refactor = {
+    confirm_global = true,       -- Prompt before global renames
+  },
 
   lint = {
     auto = false,                -- enable :HypoLintOnChange automatically
     open_quickfix = true,
     max_problems = 500,
     virtual_text_width = 80,
+    apply_preview = true,        -- Show diff preview before apply
+  },
+
+  graph = {
+    map = {
+      depth = 1,                 -- Default depth for graph visualization
+      max_nodes = 200,           -- Limit rendering for performance
+    },
   },
 
   assets = {
@@ -156,11 +181,148 @@ require("hypo").setup({
 - Toggle automatic linting with `:HypoLintOnChange` to refresh on writes or incoming watcher events.
 - Diagnostics live in namespace `hypo.nvim.lint` with custom highlights/signs (`HypoError`, `HypoWarn`, etc.).
 
+### Interactive Lint Auto-fix
+
+Review and apply automated fixes using Telescope:
+
+```vim
+:HypoLintApply      " Interactive picker
+:HypoLintApplyAll   " Apply all fixes
+```
+
+Supported fixes:
+- Simplify redundant links: `[[id|id]]` → `[[id]]`
+- Migrate legacy links: `[[Title]]` → `[[id|Title]]`
+- Remove duplicate block labels
+- Add missing `id:` front-matter
+
+The picker allows you to:
+- Preview each fix
+- Use `<Tab>` to toggle selection
+- Press `<CR>` to apply selected fixes
+
 ## Refactors
 
 - **Rename `^label`**: place the cursor on a `^label` definition or reference and run `:HypoRenameLabel`.
 - **Extract selection**: visually select text, then `:HypoExtractNote` to create a new note and insert `[[id|Title]]` or `:HypoExtractTransclude` for `![[id#^label]]` transclusions. Content is written via the Hypo CLI to keep IDs canonical.
 - **Normalize links**: run `:HypoNormalizeBuffer` to call `hypo fmt --links --ids-only` and reload the buffer if needed.
+
+### Cross-Note Refactoring
+
+Rename block references (`^labels`) across your entire vault:
+
+```vim
+:HypoRenameLabelGlobal
+```
+
+This will:
+1. Find all notes linking to the current label
+2. Update all references atomically
+3. Preserve link integrity
+
+Configure confirmation prompts:
+
+```lua
+require('hypo').setup({
+  refactor = { confirm_global = true }
+})
+```
+
+## Graph Visualization
+
+Visualize note relationships with an ASCII mini-map:
+
+```vim
+:HypoGraphMap      " Depth 1 (neighbors)
+:HypoGraphMap 2    " Depth 2 (neighbors + their neighbors)
+```
+
+Keybindings in the graph window:
+- `j/k`: Navigate up/down
+- `<CR>`: Open selected note
+- `r`: Refresh graph data
+- `q` or `<Esc>`: Close
+
+Configure depth and performance:
+
+```lua
+require('hypo').setup({
+  graph = {
+    map = {
+      depth = 1,        -- Default depth
+      max_nodes = 200,  -- Limit for performance
+    }
+  }
+})
+```
+
+## Enhanced Completion
+
+The nvim-cmp source now features smarter ranking:
+
+1. **Exact ID prefix match** — highest priority
+2. **Title starts-with**
+3. **Alias exact match**
+4. **Alias starts-with**
+5. **Substring match** in title/alias
+6. **Fuzzy match** — fallback
+
+The completion documentation now displays:
+```
+Title of the Note
+aliases: alias1, alias2, alias3
+id: note_id_123
+```
+
+Configure completion behavior:
+
+```lua
+require('hypo').setup({
+  cmp = {
+    max_items = 200,        -- Limit candidates for performance
+    include_aliases = true,  -- Complete on aliases
+    rank_exact_id = true,    -- Prioritize exact ID matches
+  }
+})
+```
+
+## Watcher Status
+
+Add watcher status to your statusline:
+
+```lua
+vim.o.statusline = '%{luaeval("require(\'hypo.refresh\').status()")} ...'
+```
+
+Or use the helper function:
+
+```lua
+require('hypo.ui.signs').statusline_component()
+```
+
+Status indicators:
+- `● watching` — Active file watcher (subscribe mode)
+- `○ polling` — Fallback timer mode
+- `× offline` — Provider unavailable
+
+### Flood Protection
+
+The watcher now includes flood protection to handle rapid file changes:
+
+```lua
+require('hypo').setup({
+  backend = {
+    watch = {
+      flood = {
+        max_batches = 8,   -- Events in window
+        window_ms = 800,   -- Time window (ms)
+      }
+    }
+  }
+})
+```
+
+When more than `max_batches` events occur within `window_ms`, the watcher coalesces them into a single refresh to prevent overwhelming the system.
 
 ## Asset Workflows
 
