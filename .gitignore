@@ -1,0 +1,17 @@
+# Build artifacts and dependencies
+node_modules/
+dist/
+*.log
+
+# Testing
+nvim-linux64/
+
+# Editor files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Vim session files
+Session.vim
+.netrwhist

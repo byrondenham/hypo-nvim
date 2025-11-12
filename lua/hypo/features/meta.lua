@@ -12,29 +12,27 @@ local function parse_simple(lines)
   local curk = nil
   for _, l in ipairs(lines) do
     local s = vim.trim(l)
-    if s == '' then
-      goto continue
-    end
-    local k, v = s:match('^([^:]+):%s*(.*)$')
-    if k then
-      k = vim.trim(k)
-      v = vim.trim(v)
-      if v == '' then
-        -- start list
-        t[k] = {}
-        curk = k
+    if s ~= '' then
+      local k, v = s:match('^([^:]+):%s*(.*)$')
+      if k then
+        k = vim.trim(k)
+        v = vim.trim(v)
+        if v == '' then
+          -- start list
+          t[k] = {}
+          curk = k
+        else
+          -- scalar
+          t[k] = v
+          curk = nil
+        end
       else
-        -- scalar
-        t[k] = v
-        curk = nil
-      end
-    else
-      local dash, val = s:match('^%-+%s*(.*)$')
-      if dash and curk then
-        table.insert(t[curk], val)
+        local dash, val = s:match('^%-+%s*(.*)$')
+        if dash and curk then
+          table.insert(t[curk], val)
+        end
       end
     end
-    ::continue::
   end
   return t
 end
