@@ -249,7 +249,10 @@ function M.start()
       is_running = true
       return
     end
-    vim.notify('Failed to start hypo watch subscription: ' .. err_msg .. ' – falling back to poll mode', vim.log.levels.WARN)
+    vim.notify(
+      'Failed to start hypo watch subscription: ' .. err_msg .. ' – falling back to poll mode',
+      vim.log.levels.WARN
+    )
     mode = 'poll'
   end
 
