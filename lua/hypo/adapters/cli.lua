@@ -284,7 +284,7 @@ function M.lint_plan(cb)
       cb(false, stderr)
       return
     end
-    
+
     local ok, lint_results = pcall(vim.json.decode, stdout)
     if not ok then
       cb(false, 'Failed to parse lint JSON: ' .. tostring(lint_results))
@@ -322,7 +322,7 @@ function M.graph(id, depth, cb)
       cb(false, neighbours)
       return
     end
-    
+
     -- Transform neighbours into graph format
     local graph_data = {
       center = id,
@@ -330,7 +330,7 @@ function M.graph(id, depth, cb)
       nodes = {},
       edges = {},
     }
-    
+
     if neighbours and type(neighbours) == 'table' then
       graph_data.nodes = neighbours
       -- Build edges from the neighbours data
@@ -340,7 +340,7 @@ function M.graph(id, depth, cb)
         end
       end
     end
-    
+
     cb(true, graph_data)
   end)
 end

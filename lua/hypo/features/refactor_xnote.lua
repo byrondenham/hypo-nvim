@@ -121,7 +121,10 @@ function M.rename_label_global()
               end)
             end)
           else
-            vim.notify('Renamed ^' .. old_label .. ' to ^' .. new_label .. ' (no references found)', vim.log.levels.INFO)
+            vim.notify(
+              'Renamed ^' .. old_label .. ' to ^' .. new_label .. ' (no references found)',
+              vim.log.levels.INFO
+            )
           end
         end)
       end)

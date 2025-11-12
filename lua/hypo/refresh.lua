@@ -323,13 +323,13 @@ function M.status()
   if not is_running then
     return '× offline'
   end
-  
+
   if current_mode == 'subscribe' then
     return '● watching'
   elseif current_mode == 'poll' then
     return '○ polling'
   end
-  
+
   return '× offline'
 end
 

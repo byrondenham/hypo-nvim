@@ -97,7 +97,10 @@ function M.apply_fixes(fixes)
   for _, fix in ipairs(fixes) do
     -- For now, we just log what would be fixed
     -- Actual implementation would depend on hypo CLI supporting patch application
-    vim.notify('Would fix: ' .. (fix.message or 'unknown issue') .. ' in ' .. (fix.id or 'unknown note'), vim.log.levels.INFO)
+    vim.notify(
+      'Would fix: ' .. (fix.message or 'unknown issue') .. ' in ' .. (fix.id or 'unknown note'),
+      vim.log.levels.INFO
+    )
     applied = applied + 1
   end
 
