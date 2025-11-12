@@ -34,7 +34,7 @@ function M.stats()
 end
 
 local function choose_adapter()
-  local conf = config()
+  local conf = config.get()
   if conf and conf.backend == 'api' then
     local ok, api = pcall(require, 'hypo.adapters.api')
     if ok then

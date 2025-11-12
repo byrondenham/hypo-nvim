@@ -19,6 +19,8 @@ function M.setup(opts)
       for kk, vv in pairs(v) do
         C[k][kk] = vv
       end
+    else
+      C[k] = v
     end
   end
 end
