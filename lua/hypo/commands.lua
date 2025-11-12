@@ -79,6 +79,25 @@ function M.register()
     require('hypo.features.session').recent()
   end, {})
 
+  -- Cross-note refactor commands
+  vim.api.nvim_create_user_command('HypoRenameLabelGlobal', function()
+    require('hypo.features.refactor_xnote').rename_label_global()
+  end, { desc = 'Rename ^label across all references in vault' })
+
+  -- Lint apply commands
+  vim.api.nvim_create_user_command('HypoLintApply', function()
+    require('hypo.features.quickfix_apply').picker()
+  end, { desc = 'Review and apply lint fixes interactively' })
+
+  vim.api.nvim_create_user_command('HypoLintApplyAll', function()
+    require('hypo.features.quickfix_apply').apply_all()
+  end, { desc = 'Apply all auto-fixable lint issues' })
+
+  -- Graph visualization
+  vim.api.nvim_create_user_command('HypoGraphMap', function(opts)
+    require('hypo.features.graphmap').open(tonumber(opts.args) or 1)
+  end, { nargs = '?', desc = 'Show graph mini-map (depth 1 or 2)' })
+
   -- suggested defaults; let users override
   vim.keymap.set('n', 'gf', '<cmd>HypoGoto<cr>', { desc = 'Hypo goto link' })
   vim.keymap.set('n', 'gp', '<cmd>HypoPreview<cr>', { desc = 'Hypo preview link' })

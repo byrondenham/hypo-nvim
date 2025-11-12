@@ -14,6 +14,13 @@ local is_focused = true
 local current_mode = nil
 local active_watch_conf = nil
 
+-- Flood protection: circular buffer for event timestamps
+local event_buffer = {}
+local event_buffer_size = 20
+local event_buffer_idx = 1
+local is_flooding = false
+local flood_cooldown_timer = nil
+
 local focus_group = vim.api.nvim_create_augroup('HypoRefreshFocus', { clear = true })
 
 vim.api.nvim_create_autocmd('FocusLost', {
@@ -67,6 +74,48 @@ local function invalidate()
   vim.schedule(function()
     vim.api.nvim_exec_autocmds('User', { pattern = 'HypoRefresh' })
   end)
+end
+
+-- Track event and check for flooding
+local function track_event()
+  local now = uv.now()
+  event_buffer[event_buffer_idx] = now
+  event_buffer_idx = (event_buffer_idx % event_buffer_size) + 1
+
+  -- Check if we're flooding
+  local conf = config.get()
+  local flood_conf = (conf.backend and conf.backend.watch and conf.backend.watch.flood) or {}
+  local max_batches = flood_conf.max_batches or 8
+  local window_ms = flood_conf.window_ms or 800
+
+  -- Count events in window
+  local count = 0
+  for _, ts in ipairs(event_buffer) do
+    if ts and (now - ts) < window_ms then
+      count = count + 1
+    end
+  end
+
+  if count >= max_batches and not is_flooding then
+    is_flooding = true
+    -- Start cooldown timer
+    if flood_cooldown_timer then
+      flood_cooldown_timer:stop()
+      flood_cooldown_timer:close()
+    end
+    flood_cooldown_timer = uv.new_timer()
+    flood_cooldown_timer:start(2000, 0, function()
+      is_flooding = false
+      event_buffer = {}
+      event_buffer_idx = 1
+      if flood_cooldown_timer then
+        flood_cooldown_timer:close()
+        flood_cooldown_timer = nil
+      end
+    end)
+  end
+
+  return is_flooding
 end
 
 local function stop_poll()
@@ -171,7 +220,10 @@ local function start_subscribe(conf, watch_conf)
         if line and line ~= '' then
           local ok, payload = pcall(vim.json.decode, line)
           if ok and payload then
-            invalidate()
+            -- Track event for flood protection
+            if not track_event() then
+              invalidate()
+            end
           end
         end
       end
@@ -265,6 +317,20 @@ function M.stop()
   stop_subscribe()
   is_running = false
   current_mode = nil
+end
+
+function M.status()
+  if not is_running then
+    return '× offline'
+  end
+  
+  if current_mode == 'subscribe' then
+    return '● watching'
+  elseif current_mode == 'poll' then
+    return '○ polling'
+  end
+  
+  return '× offline'
 end
 
 return M
