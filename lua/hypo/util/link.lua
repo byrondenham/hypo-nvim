@@ -33,7 +33,7 @@ function L.under_cursor()
 	if not open then
 		return nil
 	end
-	local close = s:find("%]%]", col + 1, false)
+	local close = line:find("%]%]", col + 1, false)
 	if not close then
 		return nil
 	end

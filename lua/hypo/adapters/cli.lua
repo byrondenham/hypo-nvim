@@ -25,7 +25,7 @@ function M.run(args, input, onexit)
 			if data then
 				for _, l in ipairs(data) do
 					if l ~= "" then
-						table.insert(stdout, 1)
+						table.insert(stdout, l)
 					end
 				end
 			end
@@ -34,7 +34,7 @@ function M.run(args, input, onexit)
 			if data then
 				for _, l in ipairs(data) do
 					if l ~= "" then
-						table.insert(stderr, 1)
+						table.insert(stderr, l)
 					end
 				end
 			end
