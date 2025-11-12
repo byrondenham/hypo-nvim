@@ -41,4 +41,13 @@ function L.under_cursor()
   return L.parse_brackets(text)
 end
 
+-- Get current note ID from filename (without extension)
+function L.current_id()
+  local fname = vim.fn.expand('%:t:r')
+  if fname and fname ~= '' then
+    return fname
+  end
+  return nil
+end
+
 return L
