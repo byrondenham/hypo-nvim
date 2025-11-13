@@ -5,6 +5,10 @@ local defaults = {
       mode = 'poll',
       interval_ms = 2000,
       debounce_ms = 250,
+      flood = {
+        max_batches = 8,
+        window_ms = 800,
+      },
     },
   },
   hypo_cmd = 'hypo',
@@ -14,14 +18,24 @@ local defaults = {
   ui = { border = 'rounded', max_width = 84, max_height = 22 },
   debounce = { preview = 80, search = 120 },
   telescope = { enable = true },
-  cmp = { enable = true, max_items = 200, include_aliases = true },
+  cmp = { enable = true, max_items = 200, include_aliases = true, rank_exact_id = true },
   cache_ttl = { notes = 5000, search = 2000, neighbours = 5000 },
   timeouts = { request_ms = 3000 },
+  refactor = {
+    confirm_global = true,
+  },
   lint = {
     auto = false,
     open_quickfix = true,
     max_problems = 500,
     virtual_text_width = 80,
+    apply_preview = true,
+  },
+  graph = {
+    map = {
+      depth = 1,
+      max_nodes = 200,
+    },
   },
   assets = {
     dir = 'assets',

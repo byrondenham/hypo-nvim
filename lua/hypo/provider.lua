@@ -231,6 +231,64 @@ function M.reindex(cb)
   end)
 end
 
+function M.bulk_edit(edits, cb)
+  if not adapter then
+    cb(false, err)
+    return
+  end
+  if not adapter.bulk_edit then
+    cb(false, 'bulk_edit not supported by current adapter')
+    return
+  end
+  local start_time = vim.loop.now()
+  adapter.bulk_edit(edits, function(ok, res)
+    local duration = vim.loop.now() - start_time
+    record_stat('bulk_edit', duration, ok)
+    if ok then
+      memo.clear()
+      -- Trigger refresh
+      require('hypo.refresh').touch()
+    end
+    cb(ok, res)
+  end)
+end
+
+function M.lint_plan(cb)
+  if not adapter then
+    cb(false, err)
+    return
+  end
+  if not adapter.lint_plan then
+    cb(false, 'lint_plan not supported by current adapter')
+    return
+  end
+  local start_time = vim.loop.now()
+  adapter.lint_plan(function(ok, res)
+    local duration = vim.loop.now() - start_time
+    record_stat('lint_plan', duration, ok)
+    cb(ok, res)
+  end)
+end
+
+function M.graph(id, depth, cb)
+  if not adapter then
+    cb(false, err)
+    return
+  end
+  if not adapter.graph then
+    cb(false, 'graph not supported by current adapter')
+    return
+  end
+  local conf = config.get()
+  local ttl = (conf.cache_ttl and conf.cache_ttl.neighbours) or 5000
+  local f = function(i, d, cb2)
+    adapter.graph(i, d, function(ok, res)
+      cb2(ok, res)
+    end)
+  end
+  wrap(cb, 'graph', ttl, f, 'graph')(id, depth)
+end
+
 function M.invalidate_all()
   memo.clear()
 end

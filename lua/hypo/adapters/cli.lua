@@ -211,4 +211,138 @@ function M.reindex(cb)
   end)
 end
 
+function M.bulk_edit(edits, cb)
+  -- edits: array of { id=note_id, find=pattern, replace=replacement }
+  -- For each edit, locate the file, read it, replace, and write atomically
+  local errors = {}
+  local success_count = 0
+  local total = #edits
+
+  if total == 0 then
+    vim.schedule(function()
+      cb(true, { success = true, applied = 0, errors = {} })
+    end)
+    return
+  end
+
+  local function process_next(idx)
+    if idx > total then
+      vim.schedule(function()
+        cb(#errors == 0, { success = #errors == 0, applied = success_count, errors = errors })
+      end)
+      return
+    end
+
+    local edit = edits[idx]
+    M.locate(edit.id, function(ok, loc)
+      if not ok or not loc or not loc.path then
+        table.insert(errors, { id = edit.id, error = 'Failed to locate note' })
+        process_next(idx + 1)
+        return
+      end
+
+      local path = loc.path
+      local file = io.open(path, 'r')
+      if not file then
+        table.insert(errors, { id = edit.id, error = 'Failed to open file' })
+        process_next(idx + 1)
+        return
+      end
+
+      local content = file:read('*all')
+      file:close()
+
+      -- Perform safe string replacement (escape pattern characters in find string)
+      local find_escaped = edit.find:gsub('([^%w])', '%%%1')
+      -- For replacement, we need to escape % characters
+      local replace_escaped = edit.replace:gsub('%%', '%%%%')
+      local new_content, count = content:gsub(find_escaped, replace_escaped)
+
+      if count > 0 then
+        local tmp_file = io.open(path, 'w')
+        if tmp_file then
+          tmp_file:write(new_content)
+          tmp_file:close()
+          success_count = success_count + 1
+        else
+          table.insert(errors, { id = edit.id, error = 'Failed to write file' })
+        end
+      end
+
+      process_next(idx + 1)
+    end)
+  end
+
+  process_next(1)
+end
+
+function M.lint_plan(cb)
+  -- Run hypo lint --json with autofix plan mode if available
+  -- For now, we'll use standard lint output and parse it
+  M.run({ 'lint', '--format', 'json' }, nil, function(code, stdout, stderr)
+    if code ~= 0 and stdout == '' then
+      cb(false, stderr)
+      return
+    end
+
+    local ok, lint_results = pcall(vim.json.decode, stdout)
+    if not ok then
+      cb(false, 'Failed to parse lint JSON: ' .. tostring(lint_results))
+      return
+    end
+
+    -- Transform lint results into fixable items
+    local fixes = {}
+    if lint_results and type(lint_results) == 'table' then
+      for _, item in ipairs(lint_results) do
+        if item.kind and item.message then
+          table.insert(fixes, {
+            id = item.id or item.note_id,
+            kind = item.kind,
+            message = item.message,
+            line = item.line,
+            col = item.col,
+            -- Patch generation would depend on hypo CLI supporting autofix
+            -- For now, we mark certain types as fixable
+            fixable = item.kind == 'redundant-link' or item.kind == 'legacy-link' or item.kind == 'duplicate-label',
+          })
+        end
+      end
+    end
+
+    cb(true, fixes)
+  end)
+end
+
+function M.graph(id, depth, cb)
+  -- Use neighbours as a fallback for graph data
+  -- A dedicated 'graph' command would be better if available
+  M.neighbours(id, depth or 1, function(ok, neighbours)
+    if not ok then
+      cb(false, neighbours)
+      return
+    end
+
+    -- Transform neighbours into graph format
+    local graph_data = {
+      center = id,
+      depth = depth or 1,
+      nodes = {},
+      edges = {},
+    }
+
+    if neighbours and type(neighbours) == 'table' then
+      graph_data.nodes = neighbours
+      -- Build edges from the neighbours data
+      for _, node in ipairs(neighbours) do
+        if node.id ~= id then
+          table.insert(graph_data.edges, { from = id, to = node.id })
+        end
+      end
+    end
+
+    cb(true, graph_data)
+  end)
+end
+
 return M

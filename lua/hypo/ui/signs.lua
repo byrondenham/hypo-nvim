@@ -71,4 +71,9 @@ function M.sign_for(severity)
   return severity_map[severity]
 end
 
+function M.statusline_component()
+  local refresh = require('hypo.refresh')
+  return refresh.status()
+end
+
 return M
